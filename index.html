@@ -3,56 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>초간단 누끼 따기 </title>
-    <script src="https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.2.0/dist/browser/imglyRemoveBackground.umd.js"></script>
+    <title>초간단 누끼 따기</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 40px; background-color: #e9ecef; }
         .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        input[type="file"] { margin: 20px 0; }
-        img { max-width: 100%; margin-top: 20px; border-radius: 8px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYNgNwEg1gBhEwkA/gNnEQIjQxAAiNTEC4Q2jBhwagwHwGI2mEXAMBwA/1DAhn2w/eAAAAABJRU5ErkJggg=='); /* 투명 배경 체크무늬 */ }
+        
+        #drop-zone {
+            border: 2px dashed #007BFF;
+            border-radius: 8px;
+            padding: 40px 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.3s, border-color 0.3s;
+            margin: 20px 0;
+        }
+        #drop-zone.dragover { background-color: #e2e6ea; border-color: #0056b3; }
+        #upload-img { display: none; }
+
+        img { max-width: 100%; margin-top: 20px; border-radius: 8px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYNgNwEg1gBhEwkA/gNnEQIjQxAAiNTEC4Q2jBhwagwHwGI2mEXAMBwA/1DAhn2w/eAAAAABJRU5ErkJggg=='); }
         #loading { display: none; color: #007BFF; font-weight: bold; margin-top: 15px; }
+        
+        .btn { padding: 10px 20px; margin-top: 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; display: none; }
+        .btn:hover { background-color: #218838; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>자동 누끼 따기</h2>
+        <h2>✂️ 자동 누끼 따기</h2>
         <p>사진을 올리면 AI가 사람이나 사물을 인식해 배경을 지워줍니다.</p>
         
-        <input type="file" id="upload-img" accept="image/png, image/jpeg" />
+        <div id="drop-zone">
+            📂 이곳으로 이미지 파일을 끌어오거나 클릭하세요.
+            <input type="file" id="upload-img" accept="image/png, image/jpeg" />
+        </div>
+
         <p id="loading">⏳ 배경을 지우고 있습니다...<br><span style="font-size: 12px; color: gray;">(최초 1회 실행 시 AI 모델을 다운로드하느라 시간이 조금 걸립니다!)</span></p>
         
         <img id="result-img" src="" style="display: none;" alt="결과 이미지">
+        
+        <button id="download-btn" class="btn">결과물 다운로드</button>
     </div>
 
-    <script>
+    <script type="module">
+        import imglyRemoveBackground from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.2.0/+esm';
+
+        const dropZone = document.getElementById('drop-zone');
         const uploadInput = document.getElementById('upload-img');
         const resultImg = document.getElementById('result-img');
         const loading = document.getElementById('loading');
+        const downloadBtn = document.getElementById('download-btn');
+        let currentBlobUrl = null;
 
-        uploadInput.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        dropZone.addEventListener('click', () => uploadInput.click());
 
-            // 로딩 메시지 보여주기
+        async function processImage(file) {
+            if (!file || !(file.type === 'image/png' || file.type === 'image/jpeg')) {
+                alert('PNG 또는 JPG 이미지 파일만 업로드해 주세요!');
+                return;
+            }
+
             loading.style.display = 'block';
             resultImg.style.display = 'none';
+            downloadBtn.style.display = 'none';
 
             try {
-                // imgly 라이브러리로 배경 제거 실행 (여기서 마법이 일어납니다!)
-                const imageBlob = await imglyRemoveBackground(file);
+                // 핵심 수정 부분: Vercel 호스팅 환경을 위해 AI 모델 파일이 있는 인터넷 주소를 명시합니다.
+                const config = {
+                    publicPath: 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.2.0/dist/'
+                };
+
+                // 설정(config) 값을 함께 전달하여 배경 제거 실행
+                const imageBlob = await imglyRemoveBackground(file, config);
                 
-                // 결과물(Blob)을 화면에 띄울 수 있는 이미지 URL로 변환
-                const url = URL.createObjectURL(imageBlob);
-                resultImg.src = url;
+                if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+                
+                currentBlobUrl = URL.createObjectURL(imageBlob);
+                resultImg.src = currentBlobUrl;
+                
                 resultImg.style.display = 'block';
+                downloadBtn.style.display = 'inline-block';
             } catch (error) {
                 alert('배경을 지우는 중 문제가 발생했습니다.');
                 console.error(error);
             } finally {
-                // 로딩 메시지 숨기기
                 loading.style.display = 'none';
             }
+        }
+
+        uploadInput.addEventListener('change', function(e) {
+            processImage(e.target.files[0]);
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            processImage(file);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!currentBlobUrl) return;
+            const link = document.createElement('a');
+            link.download = 'removed_background.png';
+            link.href = currentBlobUrl;
+            link.click();
         });
     </script>
 
