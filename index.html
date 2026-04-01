@@ -1,49 +1,242 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>초간단 누끼 따기</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 40px; background-color: #e9ecef; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
-        #drop-zone {
-            border: 2px dashed #007BFF;
-            border-radius: 8px;
-            padding: 40px 20px;
-            background-color: #f8f9fa;
-            color: #333;
-            cursor: pointer;
-            transition: background-color 0.3s, border-color 0.3s;
-            margin: 20px 0;
-        }
-        #drop-zone.dragover { background-color: #e2e6ea; border-color: #0056b3; }
-        #upload-img { display: none; }
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 
-        img { max-width: 100%; margin-top: 20px; border-radius: 8px; background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2NkYNgNwEg1gBhEwkA/gNnEQIjQxAAiNTEC4Q2jBhwagwHwGI2mEXAMBwA/1DAhn2w/eAAAAABJRU5ErkJggg=='); }
-        #loading { display: none; color: #007BFF; font-weight: bold; margin-top: 15px; }
-        
-        .btn { padding: 10px 20px; margin-top: 20px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 5px; font-weight: bold; display: none; }
-        .btn:hover { background-color: #218838; }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+            color: #334e68;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(10px);
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            color: #102a43;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        p.subtitle {
+            color: #627d98;
+            margin-bottom: 30px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        #drop-zone {
+            border: 2px dashed #bcccdc;
+            border-radius: 16px;
+            padding: 40px 20px;
+            background-color: #f0f4f8;
+            color: #486581;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #drop-zone:hover, #drop-zone.dragover {
+            background-color: #e0e8f0;
+            border-color: #3e82f7;
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 32px;
+            background: white;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 5px;
+        }
+
+        #upload-img {
+            display: none;
+        }
+
+        /* Spinner Styles */
+        .spinner-wrapper {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin: 40px 0;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e0e8f0;
+            border-top: 4px solid #3e82f7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        .spinner-text {
+            font-weight: 700;
+            color: #102a43;
+            font-size: 1.1rem;
+        }
+
+        .spinner-subtext {
+            font-size: 0.85rem;
+            color: #829ab1;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        /* Result Area */
+        #result-area {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.5s ease;
+            width: 100%;
+        }
+
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        .img-container {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            /* Checkerboard Background for Transparency */
+            background-color: #fff;
+            background-image: 
+                linear-gradient(45deg, #eee 25%, transparent 25%), 
+                linear-gradient(-45deg, #eee 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #eee 75%), 
+                linear-gradient(-45deg, transparent 75%, #eee 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        #result-img {
+            max-width: 100%;
+            display: block;
+        }
+
+        /* Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #3e82f7;
+            color: white;
+            box-shadow: 0 4px 14px rgba(62, 130, 247, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #2b70e4;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(62, 130, 247, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: #f0f4f8;
+            color: #486581;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0e8f0;
+            color: #243b53;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
+
 <body>
 
     <div class="container">
-        <h2>✂️ 자동 누끼 따기</h2>
-        <p>사진을 올리면 AI가 사람이나 사물을 인식해 배경을 지워줍니다.</p>
-        
+        <h2>✨ AI 자동 누끼 따기</h2>
+        <p class="subtitle">사진을 올리면 AI가 피사체를 인식해 배경을 깔끔하게 지워줍니다.</p>
+
+        <!-- 업로드 영역 -->
         <div id="drop-zone">
-            📂 이곳으로 이미지 파일을 끌어오거나 클릭하세요.
+            <div class="upload-icon">📁</div>
+            <div>
+                <strong>이미지 파일을 끌어오거나 클릭하세요</strong>
+                <div style="font-size: 0.85rem; margin-top: 6px; color: #829ab1;">JPG, PNG 지원</div>
+            </div>
             <input type="file" id="upload-img" accept="image/png, image/jpeg" />
         </div>
 
-        <p id="loading">⏳ 배경을 지우고 있습니다...<br><span style="font-size: 12px; color: gray;">(최초 1회 실행 시 AI 모델을 다운로드하느라 시간이 조금 걸립니다!)</span></p>
-        
-        <img id="result-img" src="" style="display: none;" alt="결과 이미지">
-        
-        <button id="download-btn" class="btn">결과물 다운로드</button>
+        <!-- 로딩 영역 -->
+        <div id="loading" class="spinner-wrapper">
+            <div class="spinner"></div>
+            <div class="spinner-text">배경을 지우고 있습니다...</div>
+            <div class="spinner-subtext">최초 1회 실행 시 AI 모델 다운로드로<br>시간이 조금 걸릴 수 있습니다.</div>
+        </div>
+
+        <!-- 결과 영역 -->
+        <div id="result-area">
+            <div class="img-container">
+                <img id="result-img" src="" alt="결과 이미지">
+            </div>
+            <div class="action-buttons">
+                <button id="reset-btn" class="btn btn-secondary">↺ 다시 하기</button>
+                <button id="download-btn" class="btn btn-primary">⬇️ 결과물 다운로드</button>
+            </div>
+        </div>
     </div>
 
     <script type="module">
@@ -54,20 +247,30 @@
         const uploadInput = document.getElementById('upload-img');
         const resultImg = document.getElementById('result-img');
         const loading = document.getElementById('loading');
+        const resultArea = document.getElementById('result-area');
         const downloadBtn = document.getElementById('download-btn');
+        const resetBtn = document.getElementById('reset-btn');
         let currentBlobUrl = null;
 
         dropZone.addEventListener('click', () => uploadInput.click());
 
+        resetBtn.addEventListener('click', () => {
+            resultArea.style.display = 'none';
+            dropZone.style.display = 'flex';
+            uploadInput.value = '';
+            if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        });
+
         async function processImage(file) {
-            if (!file || !(file.type === 'image/png' || file.type === 'image/jpeg')) {
-                alert('PNG 또는 JPG 이미지 파일만 업로드해 주세요!');
+            if (!file || !(file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/webp')) {
+                alert('PNG, JPG, WEBP 이미지 파일만 업로드해 주세요!');
                 return;
             }
 
-            loading.style.display = 'block';
-            resultImg.style.display = 'none';
-            downloadBtn.style.display = 'none';
+            dropZone.style.display = 'none';
+            resultArea.style.display = 'none';
+            loading.style.display = 'flex';
 
             try {
                 // 2. 가장 중요한 부분! 개발사가 공식적으로 마련한 '무거운 모델 전용' 서버 주소를 입력합니다.
@@ -77,24 +280,24 @@
 
                 // 드디어 에러 없이 깔끔하게 실행됩니다.
                 const imageBlob = await removeBackground(file, config);
-                
+
                 if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-                
+
                 currentBlobUrl = URL.createObjectURL(imageBlob);
                 resultImg.src = currentBlobUrl;
-                
-                resultImg.style.display = 'block';
-                downloadBtn.style.display = 'inline-block';
-            } catch (error) {
-                alert('배경을 지우는 중 문제가 발생했습니다.');
-                console.error('에러 상세 내용:', error);
-            } finally {
+
                 loading.style.display = 'none';
+                resultArea.style.display = 'flex';
+            } catch (error) {
+                alert('배경을 지우는 중 문제가 발생했습니다.\n다시 시도해 주세요.');
+                console.error('에러 상세 내용:', error);
+                loading.style.display = 'none';
+                dropZone.style.display = 'flex';
             }
         }
 
         // --- 이벤트 리스너 ---
-        uploadInput.addEventListener('change', function(e) {
+        uploadInput.addEventListener('change', function (e) {
             processImage(e.target.files[0]);
         });
 
@@ -124,4 +327,5 @@
     </script>
 
 </body>
+
 </html>
